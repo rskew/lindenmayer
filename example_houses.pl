@@ -132,7 +132,7 @@ house_ps(house(XPos, Width, Height, Windows), HousePs) :-
     y_offset(YOffset),
     phrase(([gsave, 0.0, setgray, XPos, YOffset, translate],
             [Width, Height, scale],
-            postscript:box_path(0, 0, 1, 1),
+            postscript:box_path(point(0, 0), 1, 1),
             [fill],
             WindowsPs,
             roof_ps(Width, Height),
@@ -142,17 +142,17 @@ house_ps(house(XPos, Width, Height, Windows), HousePs) :-
 
 window_ps(window(XPos, YPos, Width, Height), WindowPs) :-
     phrase(([1, setgray],
-            postscript:box_path(XPos, YPos, Width, Height),
+            postscript:box_path(point(XPos, YPos), Width, Height),
             [fill, '\n']),
            WindowPs).
 
 
 roof_ps(Width, Height) -->
     { Extent is 1 + 0.25 * Width / Height },
-    [newpath, 0, 1, moveto,
-     0.5, Extent, lineto,
-     1, 1, lineto,
-     closepath, 0.5, setgray, fill].
+    postscript:triangle_path(point(0, 1),
+                             point(1, 1),
+                             point(0.5, Extent)),
+    [0.5, setgray, fill].
 
 /*
   Creates the formatted postscript document.

@@ -52,7 +52,7 @@ rule(quadtree(NextTL, NextTR, NextBL, NextBR)) -->
 */
 quadtree_ps(square(white), quadrant(_Bottom, _Left, _Length), []).
 quadtree_ps(square(black), quadrant(Left, Bottom, Length), Box) :-
-    phrase((postscript:box_path(Left, Bottom, Length, Length),
+    phrase((postscript:box_path(point(Left, Bottom), Length, Length),
             [fill, '\n']),
            Box).
 quadtree_ps(quadtree(TopLeft, TopRight, BottomLeft, BottomRight),
