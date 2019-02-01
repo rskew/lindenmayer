@@ -1,11 +1,12 @@
-:- module(postscript, [ellipse_path//5,
-                       box_path//4,
-                       triangle_path//6
+:- module(postscript, [ellipse_path//4,
+                       box_path//3,
+                       triangle_path//3
                        ]).
 /*
   Generate graphics in postscript.
 
-  TODO: design an interface that stops postscript from leaking through.
+  TODO: design an interface that stops postscript from leaking through into
+  application code.
  */
 
 header(['%!', '\n']).
