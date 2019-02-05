@@ -1,26 +1,11 @@
-#!/usr/bin/env swipl
-
-:- use_module(library(http/thread_httpd)).
-:- use_module(library(http/http_dispatch)).
-:- use_module(library(http/html_write)).
-:- use_module(postscript).
-:- use_module(svg).
-:- initialization(main, main).
+:- module(houses, [rule//1,
+                  add_windows/2,
+                  house_graphictree/2
+                 ]).
 
 /*
-  Fill a landscape with tiny houses, becoming a cityscape of tall towers
-  as the rules are applied.
-
-  The L-system rules operate on a list of 'house's, which are populated with
-  windows prior to rendering.
-  To render the houses as an SVG, the list of houses (with windows) is concerted
-  into an intermediate representation bearing a striking resemblance to SVG,
-  before being converted to an actual SVG using predicates from library(svg).
-
-  An http server serves these SVGs to a browser, which interactively submits
-  components back to the L-system engine to be updated.
+  Procedural trees :-)
 */
-
 
 /*
   Constants.
@@ -36,52 +21,6 @@ house_width_threshold(0.00).
 window_width(0.3).
 window_border_multiplier(0.5, 0.5).
 y_offset(0.5).
-
-
-:- http_handler('/', serve_svg, []).
-
-main([]) :-
-    main([9987]).
-
-main([Port|_]) :-
-    atom_number(Port, PortNum),
-    http_server(http_dispatch, [port(PortNum)]),
-    sleep(1_000_000_000).
-
-
-serve_svg(_Request) :-
-    % Generate scene by iterating L-system rules over the initial model
-    InitialModel = [house(0, 1, 1)],
-    iterate_l_sys(InitialModel, 6, Houses),
-    % Add windows to houses
-    maplist(add_windows, Houses, HousesWindows),
-    % Convert to graphic-tree intermediate representation
-    maplist(house_graphictree, HousesWindows, GraphicTreeList),
-    append(GraphicTreeList, GraphicTree),
-    % Convert graphic-tree to SVG
-    svg:graphictree_width_height_viewbox_svg(
-            [rotate(180, GraphicTree)],
-            %GraphicTree,
-            2000, 1000, viewbox(-0.75, -0.75, 1, 1), Svg),
-    % Send to server wrapped in html tags
-    reply_html_page(title(':-)'), Svg).
-
-
-iterate_l_sys(Model, 0, Model).
-iterate_l_sys(Model, N, ProcessedModel) :-
-    NNext is N - 1,
-    once(phrase(production(rule, NextModel), Model)),
-    iterate_l_sys(NextModel, NNext, ProcessedModel).
-
-
-/*
-  Run the production rules over the entire Model.
-*/
-production(_, []) --> [].
-production(Rule, Output) -->
-    call(Rule, ProcessedModel),
-    { append(ProcessedModel, ProcessedRest, Output) },
-    production(Rule, ProcessedRest).
 
 
 /*

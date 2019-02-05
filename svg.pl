@@ -20,6 +20,13 @@
      stroke="green" stroke-width="3" fill="red"/>
 */
 
+/*
+  Render a graphictree (intermediate graphic representation) as SVG.
+
+  The 'viewbox' argument defines the coordinate system used in your
+  graphictree. The VbWidth and VbHeight will be scaled to fit the SVG element,
+  and the coordinates VbX, VbY locate the origin.
+*/
 graphictree_width_height_viewbox_svg(GraphicTree,
                                      Width,
                                      Height,
@@ -27,15 +34,17 @@ graphictree_width_height_viewbox_svg(GraphicTree,
                                      [element(svg,
                                               [width=Width,
                                                height=Height,
-                                               viewbox=Viewbox],
+                                               viewbox=Viewbox,
+                                               class=svg],
                                               SvgElements)]) :-
     format(atom(Viewbox), '~w ~w ~w ~w', [VbX, VbY, VbWidth, VbHeight]),
-    graphictree_svgelements(GraphicTree, SvgElements).
+    graphictree_svgelement_list(GraphicTree, SvgElements).
 
-% Plural!
-graphictree_svgelements(GraphicTree,
-                        SvgElements) :-
+
+graphictree_svgelement_list(GraphicTree,
+                            SvgElements) :-
     maplist(graphictree_svgelement, GraphicTree, SvgElements).
+
 
 % Case: box
 graphictree_svgelement(
@@ -53,7 +62,7 @@ graphictree_svgelement(
             [transform=TranslateAtom],
             GraphicTreeSvg)) :-
     format(atom(TranslateAtom), 'translate(~w, ~w)', [X, Y]),
-    graphictree_svgelements(GraphicTree, GraphicTreeSvg).
+    graphictree_svgelement_list(GraphicTree, GraphicTreeSvg).
 
 % Case: scale transformation
 graphictree_svgelement(
@@ -62,7 +71,7 @@ graphictree_svgelement(
             [transform=ScaleAtom],
             GraphicTreeSvg)) :-
     format(atom(ScaleAtom), 'scale(~w, ~w)', [X, Y]),
-    graphictree_svgelements(GraphicTree, GraphicTreeSvg).
+    graphictree_svgelement_list(GraphicTree, GraphicTreeSvg).
 
 % Case: rotate transformation
 graphictree_svgelement(
@@ -71,7 +80,7 @@ graphictree_svgelement(
             [transform=RotateAtom],
             GraphicTreeSvg)) :-
     format(atom(RotateAtom), 'rotate(~w)', [Degrees]),
-    graphictree_svgelements(GraphicTree, GraphicTreeSvg).
+    graphictree_svgelement_list(GraphicTree, GraphicTreeSvg).
 
 
 style_attributes(fill(Color), [fill=Color]).
