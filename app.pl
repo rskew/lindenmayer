@@ -21,7 +21,7 @@ start_server(Port) :-
 
 fresh_page(_Request) :-
     create_svg(5, Svg),
-    % Send to server wrapped in html tags
+    % Send SVG to server wrapped in html tags
     app_htmlheader(Header),
     app_htmlbody_svg(Html, Svg),
     reply_html_page(Header, Html).
@@ -45,7 +45,8 @@ create_svg(NIterations, Svg) :-
     % Convert to graphic-tree intermediate representation
     maplist(houses:house_graphictree, HousesWindows, GraphicTreeList),
     append(GraphicTreeList, GraphicTree),
-    % Convert graphic-tree to SVG
+    % Convert graphic-tree to SVG, doing a funky rotation to make
+    % the coordinates orientation the familiar Cartesian one
     svg:graphictree_width_height_viewbox_svg(
             [rotate(180, GraphicTree)],
             2000, 1000,
@@ -55,7 +56,7 @@ create_svg(NIterations, Svg) :-
 
 app_htmlheader([title(':-)'),
                 element(script, [], [
-    'function doARequest() {
+    'function regenerate_image() {
          const request = new XMLHttpRequest();
          const iterations = document.getElementById("iterations").value;
          const url = "http://localhost:9987/update?iterations=" + iterations;
@@ -85,7 +86,7 @@ app_htmlbody_svg(
                                    max=10,
                                    value=50,
                                    id=iterations,
-                                   oninput='doARequest();'],
+                                   oninput='regenerate_image();'],
                                   [])]),
                  Svg
              ])],

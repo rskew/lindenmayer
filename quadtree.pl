@@ -7,6 +7,8 @@
   Quadtree shape grammar that splits a square into four quadrants,
   assigning shades.
   The script outputs postscipt via stdout.
+
+  TODO: add this to app.pl and make it available on localhost:9987/quadtree
 */
 
 main([]) :-

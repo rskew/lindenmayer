@@ -5,8 +5,8 @@
 /*
   Generate graphics in postscript.
 
-  TODO: design an interface that stops postscript from leaking through into
-  application code.
+  TODO: implement conversion from graphictree intermediate representation
+  used in svg.pl
  */
 
 header(['%!', '\n']).

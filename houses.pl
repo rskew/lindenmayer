@@ -96,8 +96,8 @@ window_row(YPos, Height, [window(LeftXPos, YPos, Width, Height),
 
 
 /*
-  Convert house model with windows into a tree of primitive shapes as an
-  intermediate representation.
+  Convert house model with windows into a tree of abstract shapes
+  and operations as an intermediate representation.
 */
 house_graphictree(
     house(XPos, Width, Height, Windows),
