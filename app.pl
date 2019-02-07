@@ -6,14 +6,14 @@
 :- use_module(library(http/http_client)).
 :- use_module(library(http/http_header)).
 
-:- use_module(houses).
-:- use_module(quadtree).
+:- use_module(houses, [rule//1 as houses_rule]).
+:- use_module(quadtree, [rule//1 as quadtree_rule]).
 :- use_module(svg).
 
 
-:- http_handler('/houses/', fresh_page(house_svg), []).
+:- http_handler('/houses/', fresh_page(house_svg, 7), []).
 :- http_handler('/houses/update', update_page(house_svg), []).
-:- http_handler('/quadtree/', fresh_page(quadtree_svg), []).
+:- http_handler('/quadtree/', fresh_page(quadtree_svg, 14), []).
 :- http_handler('/quadtree/update', update_page(quadtree_svg), []).
 
 start_server :-
@@ -22,7 +22,7 @@ start_server(Port) :-
     http_server(http_dispatch, [port(Port)]).
 
 
-fresh_page(CreateSvg, Request) :-
+fresh_page(CreateSvg, MaxIterations, Request) :-
     call(CreateSvg, 5, Svg),
 
     member(protocol(Protocol), Request),
@@ -33,7 +33,7 @@ fresh_page(CreateSvg, Request) :-
 
     % Send to server wrapped in html tags
     app_htmlheader(Header, UpdateRoute),
-    app_htmlbody_svg(Html, Svg),
+    app_htmlbody_svg(Html, MaxIterations, Svg),
     reply_html_page(Header, Html).
 
 
@@ -49,7 +49,7 @@ update_page(CreateSvg, Request) :-
 house_svg(NIterations, Svg) :-
     % Generate scene by iterating L-system rules over the initial model
     InitialModel = [house(0, 1, 1)],
-    iterate_l_sys(houses:rule, InitialModel, NIterations, Houses),
+    iterate_l_sys(houses_rule, InitialModel, NIterations, Houses),
     % Add windows to houses
     maplist(houses:add_windows, Houses, HousesWindows),
     % Convert to graphic-tree intermediate representation
@@ -66,11 +66,10 @@ house_svg(NIterations, Svg) :-
 
 quadtree_svg(NIterations, Svg) :-
     % Generate scene by iterating L-system rules over the initial model
-    InitialModel = square(black),
-    iterate_l_sys(quadtree:rule, InitialModel, NIterations, Squares),
+    InitialModel = [square(black)],
+    iterate_l_sys(quadtree_rule, InitialModel, NIterations, [Quadtree]),
     % Convert to graphic-tree intermediate representation
-    maplist(quadtree:quadtree_graphictree, Squares, GraphicTreeList),
-    append(GraphicTreeList, GraphicTree),
+    quadtree:quadtree_graphictree(Quadtree, GraphicTree),
     % Convert graphic-tree to SVG
     svg:graphictree_width_height_viewbox_svg(
             [rotate(180, GraphicTree)],
@@ -106,20 +105,21 @@ app_htmlbody_svg(
                           element(input,
                                   [type=range,
                                    min=1,
-                                   max=7,
+                                   max=MaxIterations,
                                    value=50,
                                    id=iterations,
                                    oninput='regenerate_image();'],
                                   [])]),
                  Svg
              ])],
+    MaxIterations,
     [Svg]).
 
 
 iterate_l_sys(_Rule, Model, 0, Model).
 iterate_l_sys(Rule, Model, N, ProcessedModel) :-
     NNext is N - 1,
-    once(phrase(production(Rule, [NextModel]), [Model])),
+    once(phrase(production(Rule, NextModel), Model)),
     iterate_l_sys(Rule, NextModel, NNext, ProcessedModel).
 
 
@@ -129,5 +129,5 @@ iterate_l_sys(Rule, Model, N, ProcessedModel) :-
 production(_, []) --> [].
 production(Rule, Output) -->
     call(Rule, ProcessedModel),
-    %{ append(ProcessedModel, ProcessedRest, Output) },
+    { append(ProcessedModel, ProcessedRest, Output) },
     production(Rule, ProcessedRest).

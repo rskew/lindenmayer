@@ -7,6 +7,8 @@
   assigning shades.
 */
 
+% Wrapping/unwrapped with lists is just to make it work with the
+% current system of modelling L-system models as lists. Not for long!
 rule([quadtree(square(black),
               square(black),
               square(black),
@@ -28,10 +30,10 @@ rule([quadtree(quadtree(A, B, C, square(black)),
               BR)].
 rule([quadtree(NextTL, NextTR, NextBL, NextBR)]) -->
     [quadtree(TL, TR, BL, BR)],
-    { phrase(rule(NextTL), [TL]),
-      phrase(rule(NextTR), [TR]),
-      phrase(rule(NextBL), [BL]),
-      phrase(rule(NextBR), [BR]) }.
+    { phrase(rule([NextTL]), [TL]),
+      phrase(rule([NextTR]), [TR]),
+      phrase(rule([NextBL]), [BL]),
+      phrase(rule([NextBR]), [BR]) }.
 
 
 quadtree_graphictree(Model, GraphicTree) :-
