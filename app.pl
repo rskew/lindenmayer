@@ -6,12 +6,15 @@
 :- use_module(library(http/http_client)).
 :- use_module(library(http/http_header)).
 
-:- use_module(houses).
+:- use_module(houses, [rule//1 as houses_rule]).
+:- use_module(quadtree, [rule//1 as quadtree_rule]).
 :- use_module(svg).
 
 
-:- http_handler('/', fresh_page, []).
-:- http_handler('/update', update_page, []).
+:- http_handler('/houses/', fresh_page(house_svg, 7), []).
+:- http_handler('/houses/update', update_page(house_svg), []).
+:- http_handler('/quadtree/', fresh_page(quadtree_svg, 14), []).
+:- http_handler('/quadtree/update', update_page(quadtree_svg), []).
 
 start_server :-
     start_server(9987).
@@ -19,27 +22,34 @@ start_server(Port) :-
     http_server(http_dispatch, [port(Port)]).
 
 
-fresh_page(_Request) :-
-    create_svg(5, Svg),
-    % Send SVG to server wrapped in html tags
-    app_htmlheader(Header),
-    app_htmlbody_svg(Html, Svg),
+fresh_page(CreateSvg, MaxIterations, Request) :-
+    call(CreateSvg, 5, Svg),
+
+    member(protocol(Protocol), Request),
+    member(host(Host), Request),
+    member(port(Port), Request),
+    member(path(Path), Request),
+    format(atom(UpdateRoute), '~w://~w:~w~wupdate', [Protocol, Host, Port, Path]),
+
+    % Send to server wrapped in html tags
+    app_htmlheader(Header, UpdateRoute),
+    app_htmlbody_svg(Html, MaxIterations, Svg),
     reply_html_page(Header, Html).
 
 
-update_page(Request) :-
+update_page(CreateSvg, Request) :-
     member(search([iterations=IterationsAtom]), Request),
     atom_number(IterationsAtom, Iterations),
-    create_svg(Iterations, Svg),
+    call(CreateSvg, Iterations, Svg),
     phrase(html(Svg), Html),
     format('Content-type: text/html~n~n', []),
     print_html(Html).
 
 
-create_svg(NIterations, Svg) :-
+house_svg(NIterations, Svg) :-
     % Generate scene by iterating L-system rules over the initial model
     InitialModel = [house(0, 1, 1)],
-    iterate_l_sys(InitialModel, NIterations, Houses),
+    iterate_l_sys(houses_rule, InitialModel, NIterations, Houses),
     % Add windows to houses
     maplist(houses:add_windows, Houses, HousesWindows),
     % Convert to graphic-tree intermediate representation
@@ -54,12 +64,26 @@ create_svg(NIterations, Svg) :-
             Svg).
 
 
-app_htmlheader([title(':-)'),
-                element(script, [], [
+quadtree_svg(NIterations, Svg) :-
+    % Generate scene by iterating L-system rules over the initial model
+    InitialModel = [square(black)],
+    iterate_l_sys(quadtree_rule, InitialModel, NIterations, [Quadtree]),
+    % Convert to graphic-tree intermediate representation
+    quadtree:quadtree_graphictree(Quadtree, GraphicTree),
+    % Convert graphic-tree to SVG
+    svg:graphictree_width_height_viewbox_svg(
+            [rotate(180, GraphicTree)],
+            2000, 1000,
+            viewbox(-0.75, -0.75, 1, 1),
+            Svg).
+
+
+app_htmlheader([title(':-)'), element(script, [], HTTP_HEADER)], UpdateRoute) :-
+    format(atom(HTTP_HEADER),
     'function regenerate_image() {
          const request = new XMLHttpRequest();
          const iterations = document.getElementById("iterations").value;
-         const url = "http://localhost:9987/update?iterations=" + iterations;
+         const url = "~w?iterations=" + iterations;
          console.log(url);
          request.open("GET", url);
          request.send();
@@ -71,9 +95,7 @@ app_htmlheader([title(':-)'),
              old_svg.parentNode.insertBefore(new_svg, old_svg);
              old_svg.parentNode.removeChild(old_svg);
          };
-    };'
-                ])
-               ]).
+    };', [UpdateRoute]).
 
 
 app_htmlbody_svg(
@@ -83,21 +105,22 @@ app_htmlbody_svg(
                           element(input,
                                   [type=range,
                                    min=1,
-                                   max=10,
+                                   max=MaxIterations,
                                    value=50,
                                    id=iterations,
                                    oninput='regenerate_image();'],
                                   [])]),
                  Svg
              ])],
+    MaxIterations,
     [Svg]).
 
 
-iterate_l_sys(Model, 0, Model).
-iterate_l_sys(Model, N, ProcessedModel) :-
+iterate_l_sys(_Rule, Model, 0, Model).
+iterate_l_sys(Rule, Model, N, ProcessedModel) :-
     NNext is N - 1,
-    once(phrase(production(houses:rule, NextModel), Model)),
-    iterate_l_sys(NextModel, NNext, ProcessedModel).
+    once(phrase(production(Rule, NextModel), Model)),
+    iterate_l_sys(Rule, NextModel, NNext, ProcessedModel).
 
 
 /*
